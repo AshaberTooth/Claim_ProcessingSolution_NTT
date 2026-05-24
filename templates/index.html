@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>KataruCorp | Claims Agentic AI MVP</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #071527;
+            color: #ffffff;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 48px;
+            background: #0b1f3a;
+            border-bottom: 1px solid #1e3a5f;
+        }
+
+        .brand {
+            font-size: 26px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .developer {
+            font-size: 14px;
+            color: #b7c7dc;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+
+        .hero {
+            background: #102a4c;
+            padding: 40px;
+            border-radius: 18px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+        }
+
+        h1 {
+            font-size: 42px;
+            margin: 0 0 16px;
+        }
+
+        .subtitle {
+            color: #d7e4f5;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            margin-top: 28px;
+        }
+
+        .card {
+            background: #ffffff;
+            color: #0b1f3a;
+            padding: 22px;
+            border-radius: 14px;
+        }
+
+        .card h3 {
+            margin-top: 0;
+        }
+
+        .upload-box {
+            margin-top: 32px;
+            padding: 28px;
+            background: #ffffff;
+            color: #0b1f3a;
+            border-radius: 14px;
+        }
+
+        input[type="file"] {
+            margin: 16px 0;
+        }
+
+        button {
+            background: #0b5ed7;
+            color: white;
+            border: none;
+            padding: 13px 22px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #084bb0;
+        }
+
+        .footer {
+            text-align: center;
+            color: #b7c7dc;
+            padding: 30px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="brand">KataruCorp</div>
+        <div class="developer">Developed by Ashish M</div>
+    </div>
+
+    <div class="container">
+        <div class="hero">
+            <h1>Claims Agentic AI MVP</h1>
+            <p class="subtitle">
+                This prototype demonstrates an Azure AI Foundry workflow for healthcare claim processing.
+                It extracts claim data from uploaded documents, runs multiple AI agents, applies simple
+                eligibility and adjudication logic, and produces a final claim recommendation.
+            </p>
+
+            <div class="grid">
+                <div class="card">
+                    <h3>What it does</h3>
+                    <p>Processes claim PDFs or images using Document Intelligence and Azure AI Foundry agents.</p>
+                </div>
+
+                <div class="card">
+                    <h3>Expected input</h3>
+                    <p>A claim PDF/image containing claim ID, member ID, provider ID, date of service, diagnosis code, procedure code, and billed amount.</p>
+                </div>
+
+                <div class="card">
+                    <h3>Expected output</h3>
+                    <p>Structured claim extraction, eligibility result, adjudication recommendation, policy evidence, and final decision.</p>
+                </div>
+            </div>
+
+            <div class="upload-box">
+                <h2>Upload Claim Document</h2>
+                <form action="/upload" method="post" enctype="multipart/form-data" onsubmit="showProcessing()">
+                    <input type="file" name="file" required>
+                    <br>
+                    <button type="submit">Run Claims Workflow</button>
+                </form>
+
+                <div id="processing" style="display:none; margin-top:24px;">
+                    <h3>Agent workflow simulation</h3>
+                    <p>ClaimsIntakeAgent → Eligibility-Agent → Adjudication-Support-Agent → Knowledge-Agent → orchestrator-Agent</p>
+                    <p><strong>Processing document. Please wait...</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        KataruCorp Claims Processing MVP | Azure AI Foundry Workflow
+    </div>
+
+    <script>
+        function showProcessing() {
+            document.getElementById("processing").style.display = "block";
+        }
+    </script>
+
+</body>
+</html>

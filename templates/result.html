@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>KataruCorp | Claims Result</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #071527;
+            color: #ffffff;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 48px;
+            background: #0b1f3a;
+            border-bottom: 1px solid #1e3a5f;
+        }
+
+        .brand {
+            font-size: 26px;
+            font-weight: bold;
+        }
+
+        .developer {
+            font-size: 14px;
+            color: #b7c7dc;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+
+        .panel {
+            background: #102a4c;
+            padding: 32px;
+            border-radius: 18px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin: 24px 0;
+        }
+
+        .summary-card {
+            background: #ffffff;
+            color: #0b1f3a;
+            padding: 18px;
+            border-radius: 14px;
+        }
+
+        .summary-card h3 {
+            margin: 0 0 8px;
+            font-size: 14px;
+            color: #385678;
+        }
+
+        .summary-card p {
+            margin: 0;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .decision-pay {
+            color: #0f8a45;
+        }
+
+        .decision-deny {
+            color: #c62828;
+        }
+
+        .decision-pend {
+            color: #b7791f;
+        }
+
+        .decision-review {
+            color: #b7791f;
+        }
+
+        .agent-flow {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin: 24px 0;
+        }
+
+        .agent {
+            background: #ffffff;
+            color: #0b1f3a;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: bold;
+            border: 3px solid #25c26e;
+        }
+
+        .section {
+            background: #ffffff;
+            color: #0b1f3a;
+            padding: 24px;
+            border-radius: 14px;
+            margin-top: 22px;
+        }
+
+        .section h2 {
+            margin-top: 0;
+            color: #0b1f3a;
+        }
+
+        .section h3 {
+            color: #0b1f3a;
+            margin-bottom: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        td, th {
+            padding: 12px;
+            border-bottom: 1px solid #d8dee9;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #eef4fb;
+            color: #0b1f3a;
+        }
+
+        ul {
+            margin-top: 8px;
+            padding-left: 22px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        pre {
+            background: #071527;
+            color: #d7e4f5;
+            padding: 18px;
+            border-radius: 10px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        a {
+            color: #ffffff;
+            display: inline-block;
+            margin-top: 24px;
+        }
+
+        .error {
+            background: #fff1f1;
+            color: #b00020;
+            padding: 18px;
+            border-radius: 12px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #eef4fb;
+            color: #0b1f3a;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .muted {
+            color: #385678;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="brand">KataruCorp</div>
+        <div class="developer">Developed by Ashish M</div>
+    </div>
+
+    <div class="container">
+        <div class="panel">
+            <h1>Claims Workflow Result</h1>
+
+            {% if filename %}
+            <p><strong>Uploaded file:</strong> {{ filename }}</p>
+            {% endif %}
+
+            {% if error %}
+            <div class="error">
+                <h3>Error</h3>
+                <p>{{ error }}</p>
+            </div>
+            {% endif %}
+
+            {% if result and result.final_result %}
+                {% set final = result.final_result %}
+                {% set intake = result.intake_result %}
+                {% set eligibility = result.eligibility_result %}
+                {% set adjudication = result.adjudication_result %}
+                {% set knowledge = result.knowledge_result %}
+
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <h3>Final Recommendation</h3>
+                        <p class="
+                            {% if final.final_recommendation == 'PAY' %}decision-pay{% endif %}
+                            {% if final.final_recommendation == 'DENY' %}decision-deny{% endif %}
+                            {% if final.final_recommendation == 'PEND' %}decision-pend{% endif %}
+                            {% if final.final_recommendation == 'REQUEST_MORE_INFO' %}decision-review{% endif %}
+                        ">
+                            {{ final.final_recommendation or "N/A" }}
+                        </p>
+                    </div>
+
+                    <div class="summary-card">
+                        <h3>Claim ID</h3>
+                        <p>{{ intake.claim_id if intake else "N/A" }}</p>
+                    </div>
+
+                    <div class="summary-card">
+                        <h3>Billed Amount</h3>
+                        <p>
+                            {% if intake and intake.billed_amount is not none %}
+                                ${{ intake.billed_amount }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <div class="summary-card">
+                        <h3>Human Review</h3>
+                        <p>{{ "Required" if final.human_review_required else "Not Required" }}</p>
+                    </div>
+                </div>
+
+                <h2>Agent Workflow Simulation</h2>
+                <div class="agent-flow">
+                    <div class="agent">ClaimsIntakeAgent</div>
+                    <div class="agent">Eligibility-Agent</div>
+                    <div class="agent">Adjudication-Support-Agent</div>
+                    <div class="agent">Knowledge-Agent</div>
+                    <div class="agent">orchestrator-Agent</div>
+                </div>
+
+                {% if intake %}
+                <div class="section">
+                    <h2>Claim Details</h2>
+                    <table>
+                        <tr>
+                            <th>Field</th>
+                            <th>Value</th>
+                        </tr>
+                        <tr>
+                            <td>Claim ID</td>
+                            <td>{{ intake.claim_id }}</td>
+                        </tr>
+                        <tr>
+                            <td>Member ID</td>
+                            <td>{{ intake.member_id }}</td>
+                        </tr>
+                        <tr>
+                            <td>Provider ID</td>
+                            <td>{{ intake.provider_id }}</td>
+                        </tr>
+                        <tr>
+                            <td>Date of Service</td>
+                            <td>{{ intake.date_of_service }}</td>
+                        </tr>
+                        <tr>
+                            <td>Diagnosis Codes</td>
+                            <td>
+                                {% if intake.diagnosis_codes %}
+                                    {{ intake.diagnosis_codes | join(", ") }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Procedure Codes</td>
+                            <td>
+                                {% if intake.procedure_codes %}
+                                    {{ intake.procedure_codes | join(", ") }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Billed Amount</td>
+                            <td>
+                                {% if intake.billed_amount is not none %}
+                                    ${{ intake.billed_amount }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Missing Fields</td>
+                            <td>
+                                {% if intake.missing_fields %}
+                                    {{ intake.missing_fields | join(", ") }}
+                                {% else %}
+                                    None
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+
+                    {% if intake.summary %}
+                    <h3>Claim Summary</h3>
+                    <p>{{ intake.summary }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if eligibility %}
+                <div class="section">
+                    <h2>Eligibility Result</h2>
+                    <table>
+                        <tr>
+                            <td>Coverage Active</td>
+                            <td>
+                                <span class="badge">{{ eligibility.coverage_active }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Status</td>
+                            <td>{{ eligibility.eligibility_status }}</td>
+                        </tr>
+                        <tr>
+                            <td>Prior Authorization Required</td>
+                            <td>{{ eligibility.prior_auth_required }}</td>
+                        </tr>
+                        <tr>
+                            <td>Human Review Required</td>
+                            <td>{{ eligibility.human_review_required }}</td>
+                        </tr>
+                        <tr>
+                            <td>Reason</td>
+                            <td>{{ eligibility.reason }}</td>
+                        </tr>
+                    </table>
+                </div>
+                {% endif %}
+
+                {% if adjudication %}
+                <div class="section">
+                    <h2>Adjudication Recommendation</h2>
+                    <table>
+                        <tr>
+                            <td>Recommendation</td>
+                            <td><strong>{{ adjudication.recommendation }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Rationale</td>
+                            <td>{{ adjudication.rationale }}</td>
+                        </tr>
+                        <tr>
+                            <td>Denial Codes</td>
+                            <td>
+                                {% if adjudication.denial_codes %}
+                                    {{ adjudication.denial_codes | join(", ") }}
+                                {% else %}
+                                    None
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Pend Reasons</td>
+                            <td>
+                                {% if adjudication.pend_reasons %}
+                                    {{ adjudication.pend_reasons | join(", ") }}
+                                {% else %}
+                                    None
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Human Review Required</td>
+                            <td>{{ adjudication.human_review_required }}</td>
+                        </tr>
+                    </table>
+                </div>
+                {% endif %}
+
+                {% if knowledge %}
+                <div class="section">
+                    <h2>Policy Evidence</h2>
+
+                    {% if knowledge.evidence_summary %}
+                    <p>{{ knowledge.evidence_summary }}</p>
+                    {% endif %}
+
+                    {% if knowledge.policy_findings %}
+                    <h3>Policy Findings</h3>
+                    <ul>
+                        {% for item in knowledge.policy_findings %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+
+                    {% if knowledge.payment_rules %}
+                    <h3>Payment Rules</h3>
+                    <ul>
+                        {% for item in knowledge.payment_rules %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+
+                    {% if knowledge.denial_references %}
+                    <h3>Denial References</h3>
+                    <ul>
+                        {% for item in knowledge.denial_references %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+
+                    {% if knowledge.citations %}
+                    <h3>Citations</h3>
+                    <ul>
+                        {% for citation in knowledge.citations %}
+                        <li>{{ citation }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <div class="section">
+                    <h2>Final Decision Summary</h2>
+
+                    {% if final.claim_summary %}
+                    <p><strong>Claim Summary:</strong> {{ final.claim_summary }}</p>
+                    {% endif %}
+
+                    {% if final.eligibility_summary %}
+                    <p><strong>Eligibility Summary:</strong> {{ final.eligibility_summary }}</p>
+                    {% endif %}
+
+                    {% if final.adjudication_summary %}
+                    <p><strong>Adjudication Summary:</strong> {{ final.adjudication_summary }}</p>
+                    {% endif %}
+
+                    {% if final.policy_evidence_summary %}
+                    <p><strong>Policy Evidence:</strong> {{ final.policy_evidence_summary }}</p>
+                    {% endif %}
+
+                    {% if final.next_steps %}
+                    <h3>Next Steps</h3>
+                    <ul>
+                        {% for step in final.next_steps %}
+                        <li>{{ step }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+
+            {% elif result %}
+                <div class="section">
+                    <h2>Workflow Output</h2>
+                    <p class="muted">
+                        Structured output could not be fully parsed. Raw workflow output is shown below.
+                    </p>
+                    <pre>{{ result.raw_output }}</pre>
+                </div>
+            {% endif %}
+
+            {% if extracted_text %}
+            <div class="section">
+                <h2>Extracted Document Text</h2>
+                <pre>{{ extracted_text }}</pre>
+            </div>
+            {% endif %}
+
+            <a href="/">Upload another document</a>
+        </div>
+    </div>
+
+</body>
+</html>

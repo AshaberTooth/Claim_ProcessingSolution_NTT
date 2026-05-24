@@ -1,0 +1,355 @@
+kind: workflow
+name: ClaimsOperationsAgenticWorkflow
+description: Multi-agent claims operations workflow for healthcare payor claim intake, eligibility, adjudication support, fraud detection, provider response, appeals, and operations prioritization.
+
+trigger:
+  kind: OnConversationStart
+  id: trigger_claim_received
+  actions:
+    - kind: SetVariable
+      id: set_claim_payload
+      variable: Local.ClaimPayload
+      value: =UserMessage(System.LastMessageText)
+
+    - kind: InvokeAzureAgent
+      id: claims_intake_agent
+      agent: ClaimsIntakeAgent
+      input:
+        message: |
+          You are the Claims Intake Agent.
+          Validate the incoming claim payload.
+          Extract and normalize:
+          - member_id
+          - provider_id
+          - claim_id
+          - date_of_service
+          - diagnosis_codes
+          - procedure_codes
+          - billed_amount
+          - place_of_service
+          - attachments
+          - missing_fields
+          - confidence_score
+
+          Return strict JSON.
+          Claim payload:
+          {{Local.ClaimPayload}}
+      output:
+        variable: Local.IntakeResult
+
+    - kind: SetVariable
+      id: parse_intake_result
+      variable: Local.IntakeJson
+      value: =ParseJSON(Local.IntakeResult)
+
+    - kind: IfElse
+      id: intake_validation_gate
+      condition: =Or(IsBlank(Local.IntakeJson.member_id), IsBlank(Local.IntakeJson.provider_id), CountRows(Local.IntakeJson.missing_fields) > 0)
+      ifTrue:
+        actions:
+          - kind: InvokeAzureAgent
+            id: human_review_missing_fields
+            agent: HumanReviewAgent
+            input:
+              message: |
+                Claim intake failed validation.
+                Prepare a human review summary with missing fields and next action.
+
+                Intake result:
+                {{Local.IntakeResult}}
+            output:
+              variable: Local.FinalDecision
+
+          - kind: SendMessage
+            id: send_missing_fields_response
+            message: "{{Local.FinalDecision}}"
+
+      ifFalse:
+        actions:
+          - kind: InvokeAzureAgent
+            id: eligibility_agent
+            agent: EligibilityAgent
+            input:
+              message: |
+                You are the Eligibility Agent.
+                Check coverage, benefits, COB, accumulators, plan rules, and active eligibility.
+                Return strict JSON with:
+                - coverage_active
+                - benefit_match
+                - cob_required
+                - accumulator_status
+                - prior_auth_required
+                - eligibility_risk
+                - explanation
+
+                Intake result:
+                {{Local.IntakeResult}}
+            output:
+              variable: Local.EligibilityResult
+
+          - kind: SetVariable
+            id: parse_eligibility_result
+            variable: Local.EligibilityJson
+            value: =ParseJSON(Local.EligibilityResult)
+
+          - kind: InvokeAzureAgent
+            id: adjudication_support_agent
+            agent: AdjudicationSupportAgent
+            input:
+              message: |
+                You are the Adjudication Support Agent.
+                Apply claim business rules.
+                Recommend pay, deny, pend, or request additional information.
+                Return strict JSON with:
+                - adjudication_recommendation
+                - denial_codes
+                - pend_reasons
+                - policy_references_needed
+                - payment_rationale
+                - human_review_required
+
+                Intake:
+                {{Local.IntakeResult}}
+
+                Eligibility:
+                {{Local.EligibilityResult}}
+            output:
+              variable: Local.AdjudicationResult
+
+          - kind: InvokeAzureAgent
+            id: fraud_siu_agent
+            agent: FraudSIUAgent
+            input:
+              message: |
+                You are the Fraud and SIU Agent.
+                Detect suspicious billing patterns, duplicate claims, upcoding, unbundling,
+                abnormal provider behavior, and high-risk combinations.
+                Return strict JSON with:
+                - fraud_risk_score
+                - fraud_indicators
+                - siu_escalation_required
+                - recommended_controls
+                - explanation
+
+                Intake:
+                {{Local.IntakeResult}}
+
+                Eligibility:
+                {{Local.EligibilityResult}}
+
+                Adjudication:
+                {{Local.AdjudicationResult}}
+            output:
+              variable: Local.FraudResult
+
+          - kind: SetVariable
+            id: parse_fraud_result
+            variable: Local.FraudJson
+            value: =ParseJSON(Local.FraudResult)
+
+          - kind: InvokeAzureAgent
+            id: knowledge_agent
+            agent: KnowledgeAgent
+            input:
+              message: |
+                You are the Knowledge Agent.
+                Search policies, fee schedules, provider contracts, benefit rules,
+                denial code references, and regulatory documents.
+                Provide citations or source references when available.
+                Return strict JSON with:
+                - relevant_policies
+                - fee_schedule_findings
+                - contract_findings
+                - regulatory_findings
+                - evidence_summary
+
+                Intake:
+                {{Local.IntakeResult}}
+
+                Eligibility:
+                {{Local.EligibilityResult}}
+
+                Adjudication:
+                {{Local.AdjudicationResult}}
+
+                Fraud:
+                {{Local.FraudResult}}
+            output:
+              variable: Local.KnowledgeResult
+
+          - kind: InvokeAzureAgent
+            id: appeals_agent
+            agent: AppealsAgent
+            input:
+              message: |
+                You are the Appeals Agent.
+                Determine whether this claim is likely to trigger appeal.
+                Draft appeal-ready case summary and supporting evidence package.
+                Return strict JSON with:
+                - appeal_likelihood
+                - case_summary
+                - supporting_evidence
+                - draft_response
+                - missing_evidence
+
+                Intake:
+                {{Local.IntakeResult}}
+
+                Eligibility:
+                {{Local.EligibilityResult}}
+
+                Adjudication:
+                {{Local.AdjudicationResult}}
+
+                Knowledge:
+                {{Local.KnowledgeResult}}
+            output:
+              variable: Local.AppealsResult
+
+          - kind: InvokeAzureAgent
+            id: provider_service_agent
+            agent: ProviderServiceAgent
+            input:
+              message: |
+                You are the Provider Service Agent.
+                Generate a provider-facing claim status explanation.
+                Include denial reason, pend reason, missing documents, or next steps.
+                Do not disclose internal fraud logic.
+                Return strict JSON with:
+                - provider_message
+                - claim_status
+                - next_steps
+                - documents_needed
+                - safe_to_share
+
+                Intake:
+                {{Local.IntakeResult}}
+
+                Eligibility:
+                {{Local.EligibilityResult}}
+
+                Adjudication:
+                {{Local.AdjudicationResult}}
+
+                Knowledge:
+                {{Local.KnowledgeResult}}
+            output:
+              variable: Local.ProviderServiceResult
+
+          - kind: InvokeAzureAgent
+            id: operations_agent
+            agent: OperationsAgent
+            input:
+              message: |
+                You are the Operations Agent.
+                Prioritize the claim for operations queue management.
+                Return strict JSON with:
+                - priority
+                - sla_risk
+                - aging_risk
+                - queue
+                - bottleneck_prediction
+                - recommended_owner
+
+                Intake:
+                {{Local.IntakeResult}}
+
+                Eligibility:
+                {{Local.EligibilityResult}}
+
+                Adjudication:
+                {{Local.AdjudicationResult}}
+
+                Fraud:
+                {{Local.FraudResult}}
+            output:
+              variable: Local.OperationsResult
+
+          - kind: IfElse
+            id: final_human_review_gate
+            condition: =Or(Local.FraudJson.siu_escalation_required = true, Local.EligibilityJson.coverage_active = false)
+            ifTrue:
+              actions:
+                - kind: InvokeAzureAgent
+                  id: human_review_final
+                  agent: HumanReviewAgent
+                  input:
+                    message: |
+                      Human review is required.
+                      Prepare final reviewer packet.
+
+                      Intake:
+                      {{Local.IntakeResult}}
+
+                      Eligibility:
+                      {{Local.EligibilityResult}}
+
+                      Adjudication:
+                      {{Local.AdjudicationResult}}
+
+                      Fraud:
+                      {{Local.FraudResult}}
+
+                      Knowledge:
+                      {{Local.KnowledgeResult}}
+
+                      Appeals:
+                      {{Local.AppealsResult}}
+
+                      Provider Service:
+                      {{Local.ProviderServiceResult}}
+
+                      Operations:
+                      {{Local.OperationsResult}}
+                  output:
+                    variable: Local.FinalDecision
+
+                - kind: SendMessage
+                  id: send_human_review_packet
+                  message: "{{Local.FinalDecision}}"
+
+            ifFalse:
+              actions:
+                - kind: InvokeAzureAgent
+                  id: final_claims_orchestrator
+                  agent: AdjudicationSupportAgent
+                  input:
+                    message: |
+                      Produce the final claim workflow output.
+                      Return strict JSON with:
+                      - final_recommendation
+                      - auto_action_allowed
+                      - payment_or_denial_rationale
+                      - provider_response
+                      - audit_notes
+                      - human_review_required
+
+                      Intake:
+                      {{Local.IntakeResult}}
+
+                      Eligibility:
+                      {{Local.EligibilityResult}}
+
+                      Adjudication:
+                      {{Local.AdjudicationResult}}
+
+                      Fraud:
+                      {{Local.FraudResult}}
+
+                      Knowledge:
+                      {{Local.KnowledgeResult}}
+
+                      Appeals:
+                      {{Local.AppealsResult}}
+
+                      Provider Service:
+                      {{Local.ProviderServiceResult}}
+
+                      Operations:
+                      {{Local.OperationsResult}}
+                  output:
+                    variable: Local.FinalDecision
+
+                - kind: SendMessage
+                  id: send_final_decision
+                  message: "{{Local.FinalDecision}}"
